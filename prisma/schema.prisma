@@ -24,7 +24,7 @@ model Item {
   status    Status    @default(PENDING)
   expiredAt DateTime? @default(dbgenerated("NOW() + interval '1 day'"))
   createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  updatedAt DateTime? @updatedAt
 
   @@index([status])
   @@index([expiredAt])

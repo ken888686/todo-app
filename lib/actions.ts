@@ -1,10 +1,25 @@
-import { PrismaPg } from "@prisma/adapter-pg";
-import "dotenv/config";
-import { PrismaClient } from "../app/generated/prisma/client";
+"use server";
+import {
+  ItemCreateInput,
+  ItemUncheckedUpdateInput,
+} from "@/app/generated/prisma/models";
+import { revalidatePath } from "next/cache";
+import { prisma } from "./db";
 
-const connectionString: string = `${process.env.DATABASE_URL}`;
+export async function addItem(newItem: ItemCreateInput) {
+  await prisma.item.create({ data: newItem });
+  revalidatePath("/");
+}
 
-const adapter = new PrismaPg({ connectionString });
-const prisma = new PrismaClient({ adapter });
+export async function updateItemStatus(newItem: ItemUncheckedUpdateInput) {
+  await prisma.item.update({
+    where: { id: newItem.id as number },
+    data: { status: newItem.status },
+  });
+  revalidatePath("/");
+}
 
-export { prisma };
+export async function deleteItem(id: number) {
+  await prisma.item.delete({ where: { id } });
+  revalidatePath("/");
+}
