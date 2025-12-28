@@ -1,10 +1,10 @@
 "use server";
+import { revalidatePath } from "next/cache";
+import { prisma } from "./db";
 import {
   ItemCreateInput,
   ItemUncheckedUpdateInput,
-} from "@/app/generated/prisma/models";
-import { revalidatePath } from "next/cache";
-import { prisma } from "./db";
+} from "./generated/prisma/models";
 
 export async function addItem(newItem: ItemCreateInput) {
   await prisma.item.create({ data: newItem });
@@ -21,5 +21,13 @@ export async function updateItemStatus(newItem: ItemUncheckedUpdateInput) {
 
 export async function deleteItem(id: number) {
   await prisma.item.delete({ where: { id } });
+  revalidatePath("/");
+}
+
+export async function updateItemTitle(id: number, title: string) {
+  await prisma.item.update({
+    where: { id },
+    data: { title },
+  });
   revalidatePath("/");
 }
