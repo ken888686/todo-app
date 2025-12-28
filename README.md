@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Shopping List App 🛒
 
-## Getting Started
+這是一個使用 **Next.js 16 (App Router)**、**Prisma 7** 和 **PostgreSQL** 構建的現代化、響應式購物清單應用程式。
 
-First, run the development server:
+## ✨ 主要功能
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+- **項目管理**：輕鬆新增、編輯和刪除購物清單項目。
+- **行內編輯**：點擊項目標題即可直接進行編輯，並透過 Enter 鍵快速保存。
+- **狀態追蹤**：快速切換項目的 `PENDING`（待辦）或 `DONE`（已完成）狀態。
+- **搜尋與過濾**：單一輸入框結合「搜尋」與「新增」功能，輸入時自動執行實時過濾，避免重複添加。
+- **智慧排序**：項目會依據狀態（Pending 優先）、標題（字母順序）及創建時間自動排序。
+- **自動過期追蹤**：新項目預設會在 1 天後過期，方便追蹤新鮮度或時效。
+- **響應式設計**：基於 **Tailwind CSS v4** 和 **Radix UI** 打造，支援行動端與桌面端無縫操作。
+- **類型安全**：使用 TypeScript 與 Prisma 自動生成的類型，確保端到端開發的安全性。
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🛠️ 技術棧
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- **框架**: [Next.js 16](https://nextjs.org/) (App Router)
+- **前端庫**: [React 19](https://react.dev/)
+- **樣式**: [Tailwind CSS v4](https://tailwindcss.com/), [Radix UI](https://www.radix-ui.com/)
+- **資料庫**: [PostgreSQL](https://www.postgresql.org/)
+- **ORM**: [Prisma 7](https://www.prisma.io/) (搭配 `@prisma/adapter-pg`)
+- **圖標**: [Lucide React](https://lucide.dev/)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🚀 快速開始
 
-## Learn More
+### 必要條件
 
-To learn more about Next.js, take a look at the following resources:
+- Node.js (建議 v20 或以上)
+- PostgreSQL 資料庫實例
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 安裝步驟
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. **複製專案**
 
-## Deploy on Vercel
+    ```bash
+    git clone <repository-url>
+    cd todo-app
+    ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+2. **安裝依賴**
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+    ```bash
+    npm install
+    ```
+
+3. **環境變數設置**
+
+    在根目錄創建 `.env` 文件，並添加你的 PostgreSQL 連接字串：
+
+    ```env
+    DATABASE_URL="postgresql://user:password@localhost:5432/todo_app"
+    ```
+
+4. **資料庫初始化**
+
+    將 Prisma 模型推送到資料庫：
+
+    ```bash
+    npx prisma db push
+    ```
+
+5. **啟動開發伺服器**
+
+    ```bash
+    npm run dev
+    ```
+
+    開啟 [http://localhost:3000](http://localhost:3000) 即可開始使用。
+
+## 📂 專案結構
+
+- `app/`: Next.js App Router 頁面與佈局。
+- `components/`: 可重用的 UI 元件（如 `TodoList` 及 shadcn/ui 基礎元件）。
+- `lib/`: 工具函式、Server Actions (`actions.ts`) 及 Prisma 客戶端配置。
+- `prisma/`: 資料庫 Schema 定義。
+
+## 📝 執照
+
+本專案採用 MIT 執照。
