@@ -14,7 +14,7 @@ export default async function Home() {
   });
 
   return (
-    <div className="flex h-screen flex-col items-center p-4 font-sans">
+    <div className="flex h-dvh flex-col items-center p-4 font-sans">
       <Card className="flex h-full w-full max-w-xl flex-col">
         <CardHeader>
           <CardTitle>My Shopping List</CardTitle>

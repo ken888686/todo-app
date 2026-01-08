@@ -8,10 +8,9 @@ import {
   updateItemTitle,
 } from "@/lib/actions";
 import { Status } from "@/lib/generated/prisma/enums";
-import { ItemCreateInput, ItemModel } from "@/lib/generated/prisma/models";
+import { ItemModel } from "@/lib/generated/prisma/models";
 import { Plus, Trash2 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
-import { Badge } from "./ui/badge";
+import { useEffect, useState } from "react";
 import { Checkbox } from "./ui/checkbox";
 import { ScrollArea } from "./ui/scroll-area";
 
@@ -20,7 +19,6 @@ export function TodoList({ initialItems }: { initialItems: ItemModel[] }) {
   const [inputValue, setInputValue] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [tempTitle, setTempTitle] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setItems(initialItems);
@@ -30,22 +28,21 @@ export function TodoList({ initialItems }: { initialItems: ItemModel[] }) {
     item.title.toLowerCase().includes(inputValue.toLowerCase()),
   );
 
-  async function handleAdd(newItem: ItemCreateInput) {
+  async function handleAdd(formData: FormData) {
+    const title = formData.get("title")?.toString();
+
     if (
-      !newItem.title ||
-      newItem.title.trim() === "" ||
+      !title ||
+      title.trim() === "" ||
       filteredItems.some((item) =>
-        item.title.toLowerCase().includes(newItem.title.toLowerCase()),
+        item.title.toLowerCase().includes(title.toLowerCase()),
       )
     ) {
       return;
     }
 
-    await addItem(newItem);
+    await addItem({ title });
     setInputValue("");
-    setTimeout(() => {
-      inputRef.current?.focus();
-    }, 0);
   }
 
   async function handleStatusChange(id: number, checked: boolean) {
@@ -85,9 +82,9 @@ export function TodoList({ initialItems }: { initialItems: ItemModel[] }) {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
-      <div className="flex items-center gap-2">
+      <form action={handleAdd} className="flex items-center gap-2">
         <Input
-          ref={inputRef}
+          name="title"
           placeholder="Add a new todo"
           value={inputValue}
           onChange={(e) => {
@@ -96,7 +93,7 @@ export function TodoList({ initialItems }: { initialItems: ItemModel[] }) {
         />
         <Button
           size="icon-lg"
-          onClick={() => handleAdd({ title: inputValue })}
+          type="submit"
           disabled={
             inputValue.trim() === "" ||
             filteredItems.some((item) =>
@@ -106,7 +103,7 @@ export function TodoList({ initialItems }: { initialItems: ItemModel[] }) {
         >
           <Plus />
         </Button>
-      </div>
+      </form>
       <ScrollArea className="min-h-0 flex-1 rounded-md border">
         <div className="flex flex-col gap-3 p-4">
           {filteredItems.map((item) => (
@@ -158,16 +155,9 @@ export function TodoList({ initialItems }: { initialItems: ItemModel[] }) {
                       {item.title}
                     </label>
                   )}
-
-                  {item.expiredAt && (
-                    <p className="text-muted-foreground text-xs">
-                      Expired At: {new Date(item.expiredAt).toLocaleString()}
-                    </p>
-                  )}
                 </div>
               </div>
               <div className="flex items-center justify-end">
-                <Badge variant="outline">{item.status}</Badge>
                 <Button
                   variant="ghost"
                   size="icon"
