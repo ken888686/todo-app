@@ -155,6 +155,12 @@ export function TodoList({ initialItems }: { initialItems: ItemModel[] }) {
                       {item.title}
                     </label>
                   )}
+
+                  {item.expiredAt && (
+                    <p className="text-muted-foreground text-xs">
+                      Expired At: {new Date(item.expiredAt).toLocaleString()}
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex items-center justify-end">

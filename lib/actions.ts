@@ -1,9 +1,11 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { prisma } from "./db";
+import { Status } from "./generated/prisma/enums";
 import {
   ItemCreateInput,
   ItemUncheckedUpdateInput,
+  ItemUpdateInput,
 } from "./generated/prisma/models";
 
 export async function addItem(newItem: ItemCreateInput) {
@@ -12,9 +14,19 @@ export async function addItem(newItem: ItemCreateInput) {
 }
 
 export async function updateItemStatus(newItem: ItemUncheckedUpdateInput) {
+  const updateData: ItemUpdateInput = {
+    status: newItem.status,
+  };
+
+  if (newItem.status === Status.PENDING) {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    updateData.expiredAt = tomorrow;
+  }
+
   await prisma.item.update({
     where: { id: newItem.id as number },
-    data: { status: newItem.status },
+    data: updateData,
   });
   revalidatePath("/");
 }
