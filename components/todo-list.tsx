@@ -10,7 +10,8 @@ import {
 import { Status } from "@/lib/generated/prisma/enums";
 import { ItemModel } from "@/lib/generated/prisma/models";
 import { Plus } from "lucide-react";
-import { startTransition, use, useMemo, useOptimistic, useState } from "react";
+import { useRouter } from "next/navigation";
+import { use, useMemo, useOptimistic, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { TodoItem } from "./todo-item";
 import { ScrollArea } from "./ui/scroll-area";
@@ -26,8 +27,10 @@ export function TodoList({
 }: {
   initialItems: Promise<ItemModel[]>;
 }) {
+  const router = useRouter();
   const items = use(initialItems);
   const [inputValue, setInputValue] = useState("");
+  const [isPending, startTransition] = useTransition();
 
   const [optimisticItems, setOptimisticItems] = useOptimistic(
     items,
@@ -71,48 +74,27 @@ export function TodoList({
       return;
     }
 
-    const tempId = Math.random();
-    const newItem: ItemModel = {
-      id: tempId,
-      title,
-      status: Status.PENDING,
-      expiredAt: null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+    startTransition(async () => {
+      const tempId = Date.now();
+      const newItem: ItemModel = {
+        id: tempId,
+        title: inputValue,
+        status: Status.PENDING,
+        expiredAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
 
-    setOptimisticItems({ type: "ADD", item: newItem });
-    setInputValue("");
+      setOptimisticItems({ type: "ADD", item: newItem });
+      setInputValue("");
 
-    try {
-      // In a real app we'd get the real item back from the server
-      await addItem({ title });
-      // For now, we assume success and validation happens on server/next refresh.
-      // Ideally addItem should return the new item to allow reconciling ID.
-      // Since we are using a simple list view, we might need to refresh data
-      // or let the server component re-render handle it.
-      // For this "client list", we update local state if we had the real item.
-      // Since addItem is void or doesn't return the item in the imported signature likely,
-      // we rely on revalidation.
+      const result = await addItem(inputValue);
 
-      // Updating local state (non-optimistic) to keep in sync if revalidation doesn't happen immediately
-      // But wait, addItem is a server action that likely revalidates path.
-      // If so, `items` prop will update if parent re-renders.
-      // But this is a client component, `use(initialItems)` runs once.
-      // So we need to update `items` state manually or assume parent passes fresh promise.
-      // Let's manually update items to a "fake" successful state if we don't get new data,
-      // BUT the correct way with server actions + client component state is often
-      // just relying on the optimistic state until the server action resolves
-      // and potentially refreshes the page/returns new data.
-
-      // Assuming `addItem` revalidates path. Next.js will update the RSC payload.
-      // But `useState(use(initialItems))` won't automatically update from props change
-      // unless we bind it to a key or use useEffect.
-      // However, for this task, let's keep it simple.
-    } catch (e) {
-      // Revert optimistic update (requires more complex logic or just refresh)
-      toast.error("Failed to add item");
-    }
+      if (!result.success) {
+        toast.error(result.error);
+        router.refresh();
+      }
+    });
   }
 
   function handleStatusChange(id: number, checked: boolean) {
@@ -120,11 +102,13 @@ export function TodoList({
       const newStatus: Status = checked ? Status.DONE : Status.PENDING;
       setOptimisticItems({ type: "UPDATE_STATUS", id, status: newStatus });
 
-      try {
-        await updateItemStatus({ id, status: newStatus });
+      const result = await updateItemStatus(id, newStatus);
+
+      if (!result.success) {
+        toast.error(result.error);
+        router.refresh();
+      } else {
         toast("Item status updated");
-      } catch {
-        toast.error("Failed to update status");
       }
     });
   }
@@ -132,11 +116,11 @@ export function TodoList({
   function handleSaveTitle(id: number, newTitle: string) {
     startTransition(async () => {
       setOptimisticItems({ type: "UPDATE_TITLE", id, title: newTitle });
+      const result = await updateItemTitle(id, newTitle);
 
-      try {
-        await updateItemTitle(id, newTitle);
-      } catch {
-        toast.error("Failed to update title");
+      if (!result.success) {
+        toast.error(result.error);
+        router.refresh();
       }
     });
   }
@@ -144,11 +128,10 @@ export function TodoList({
   function handleDelete(id: number) {
     startTransition(async () => {
       setOptimisticItems({ type: "DELETE", id });
-
-      try {
-        await deleteItem(id);
-      } catch {
-        toast.error("Failed to delete item");
+      const result = await deleteItem(id);
+      if (!result.success) {
+        toast.error(result.error);
+        router.refresh();
       }
     });
   }
@@ -166,9 +149,10 @@ export function TodoList({
           size="icon-lg"
           type="submit"
           disabled={
+            isPending ||
             inputValue.trim() === "" ||
-            filteredItems.some((item) =>
-              item.title.toLowerCase().includes(inputValue.toLowerCase()),
+            filteredItems.some(
+              (item) => item.title.toLowerCase() === inputValue.toLowerCase(),
             )
           }
           aria-pressed="false"

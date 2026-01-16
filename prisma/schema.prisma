@@ -20,7 +20,7 @@ enum Status {
 
 model Item {
   id        Int       @id @default(autoincrement())
-  title     String    @unique
+  title     String
   status    Status    @default(PENDING)
   expiredAt DateTime? @default(dbgenerated("NOW() + interval '1 day'"))
   createdAt DateTime  @default(now())

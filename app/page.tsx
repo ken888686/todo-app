@@ -6,8 +6,8 @@ import { Metadata } from "next";
 import { Suspense } from "react";
 
 export const metadata: Metadata = {
-  title: "Shopping List",
-  description: "My Shopping List",
+  title: "Todo App",
+  description: "My Todo List",
 };
 
 export default function Home() {
@@ -19,7 +19,7 @@ export default function Home() {
     <div className="flex h-dvh flex-col items-center p-4 font-sans">
       <Card className="flex h-full w-full max-w-xl flex-col">
         <CardHeader>
-          <CardTitle>My Shopping List</CardTitle>
+          <CardTitle>My Todo List</CardTitle>
         </CardHeader>
         <CardContent className="flex min-h-0 flex-1 flex-col">
           <Suspense
