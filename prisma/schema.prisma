@@ -24,9 +24,90 @@ model Item {
   status    Status    @default(PENDING)
   expiredAt DateTime? @default(dbgenerated("NOW() + interval '1 day'"))
   createdAt DateTime  @default(now())
-  updatedAt DateTime? @updatedAt
+  updatedAt DateTime  @updatedAt
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([status])
-  @@index([expiredAt])
+  @@index([userId])
   @@map("items")
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  authenticator Authenticator[] // Optional for WebAuthn support
+  items         Item[]
+  sessions      Session[]
+
+  @@map("users")
+}
+
+model Account {
+  type              String
+  provider          String
+  providerAccountId String
+  refreshToken      String?
+  accessToken       String?
+  expiresAt         Int?
+  tokenType         String?
+  scope             String?
+  idToken           String?
+  sessionState      String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Session {
+  sessionToken String   @unique
+  expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+  @@map("verification_tokens")
+}
+
+// Optional for WebAuthn support
+model Authenticator {
+  credentialID         String  @unique
+  providerAccountId    String
+  credentialPublicKey  String
+  counter              Int
+  credentialDeviceType String
+  credentialBackedUp   Boolean
+  transports           String?
+
+  userId Int
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, credentialID])
+  @@map("authenticators")
 }
