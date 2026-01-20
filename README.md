@@ -59,7 +59,7 @@ This is a modern, responsive Todo application built with **Next.js 16 (App Route
 
     # Better Auth Configuration
     BETTER_AUTH_SECRET="your_better_auth_secret_here"
-    BETTER_AUTH_URL="http://localhost:3000"
+    NEXT_PUBLIC_BETTER_AUTH_URL="http://localhost:3000"
 
     # Google OAuth
     GOOGLE_CLIENT_ID="your_google_client_id_here"
