@@ -27,6 +27,10 @@ export default function LoginPage() {
         onSuccess: () => {
           router.push("/");
         },
+        onError: (ctx) => {
+          // 這是關鍵：讓手機直接彈出錯誤訊息
+          alert(`登入錯誤: ${ctx.error.message || ctx.error.statusText}`);
+        },
       },
     });
   };
