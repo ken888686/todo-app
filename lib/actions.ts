@@ -1,5 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
+import { auth } from "./auth";
 import { prisma } from "./db";
 import { Status } from "./generated/prisma/enums";
 import {
@@ -14,15 +16,27 @@ type ActionResult<T> =
 
 export async function addItem(title: string): Promise<ActionResult<ItemModel>> {
   try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    if (!session?.user.id) {
+      return { success: false, error: "Unauthorized" };
+    }
+
     if (!title || title.trim().length === 0) {
       return { success: false, error: "Title cannot be empty" };
     }
 
-    const itemData: ItemCreateInput = {
+    const itemData: Omit<ItemCreateInput, "user"> = {
       title,
       status: Status.PENDING,
     };
-    const newItem = await prisma.item.create({ data: itemData });
+    const newItem = await prisma.item.create({
+      data: {
+        ...itemData,
+        userId: session.user.id,
+      },
+    });
     revalidatePath("/");
     return { success: true, data: newItem };
   } catch (e) {
@@ -36,6 +50,13 @@ export async function updateItemStatus(
   status: Status,
 ): Promise<ActionResult<ItemModel>> {
   try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    if (!session?.user.id) {
+      return { success: false, error: "Unauthorized" };
+    }
+
     const updateData: ItemUpdateInput = {
       status,
     };
@@ -46,12 +67,17 @@ export async function updateItemStatus(
       updateData.expiredAt = tomorrow;
     }
 
-    const updatedItem = await prisma.item.update({
-      where: { id },
+    const { count } = await prisma.item.updateMany({
+      where: { id, userId: session.user.id },
       data: updateData,
     });
+
+    if (count === 0) {
+      return { success: false, error: "Item not found or permission denied." };
+    }
+
     revalidatePath("/");
-    return { success: true, data: updatedItem };
+    return { success: true, data: {} as ItemModel };
   } catch (e) {
     const error =
       e instanceof Error ? e.message : "Failed to update item status";
@@ -61,9 +87,23 @@ export async function updateItemStatus(
 
 export async function deleteItem(id: number): Promise<ActionResult<ItemModel>> {
   try {
-    const deletedItem = await prisma.item.delete({ where: { id } });
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    if (!session?.user.id) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    const { count } = await prisma.item.deleteMany({
+      where: { id, userId: session.user.id },
+    });
+
+    if (count === 0) {
+      return { success: false, error: "Item not found or permission denied." };
+    }
+
     revalidatePath("/");
-    return { success: true, data: deletedItem };
+    return { success: true, data: {} as ItemModel };
   } catch (e) {
     const error = e instanceof Error ? e.message : "Failed to delete item";
     return { success: false, error };
@@ -75,15 +115,27 @@ export async function updateItemTitle(
   title: string,
 ): Promise<ActionResult<ItemModel>> {
   try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    if (!session?.user.id) {
+      return { success: false, error: "Unauthorized" };
+    }
+
     if (!title || title.trim().length === 0) {
       return { success: false, error: "Title cannot be empty" };
     }
-    const updatedItem = await prisma.item.update({
-      where: { id },
+    const { count } = await prisma.item.updateMany({
+      where: { id, userId: session.user.id },
       data: { title },
     });
+
+    if (count === 0) {
+      return { success: false, error: "Item not found or permission denied." };
+    }
+
     revalidatePath("/");
-    return { success: true, data: updatedItem };
+    return { success: true, data: {} as ItemModel };
   } catch (e) {
     const error =
       e instanceof Error ? e.message : "Failed to update item title";

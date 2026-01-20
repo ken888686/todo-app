@@ -1,8 +1,11 @@
+import SignoutBtn from "@/components/signout-btn";
 import { TodoList } from "@/components/todo-list";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { Metadata } from "next";
+import { headers } from "next/headers";
 import { Suspense } from "react";
 
 export const metadata: Metadata = {
@@ -10,16 +13,22 @@ export const metadata: Metadata = {
   description: "My Todo List",
 };
 
-export default function Home() {
+export default async function Home() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
   const items = prisma.item.findMany({
+    where: { userId: session?.user.id },
     orderBy: [{ status: "asc" }, { title: "asc" }, { createdAt: "desc" }],
   });
 
   return (
     <div className="flex h-dvh flex-col items-center p-4 font-sans">
       <Card className="flex h-full w-full max-w-xl flex-col">
-        <CardHeader>
+        <CardHeader className="flex items-center justify-between">
           <CardTitle>My Todo List</CardTitle>
+          <SignoutBtn />
         </CardHeader>
         <CardContent className="flex min-h-0 flex-1 flex-col">
           <Suspense

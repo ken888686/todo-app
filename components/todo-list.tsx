@@ -81,6 +81,7 @@ export function TodoList({
         title: inputValue,
         status: Status.PENDING,
         expiredAt: null,
+        userId: "optimistic-user",
         createdAt: new Date(),
         updatedAt: new Date(),
       };
