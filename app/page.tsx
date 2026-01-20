@@ -4,14 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { Metadata } from "next";
 import { headers } from "next/headers";
 import { Suspense } from "react";
-
-export const metadata: Metadata = {
-  title: "Todo App",
-  description: "My Todo List",
-};
 
 export default async function Home() {
   const session = await auth.api.getSession({

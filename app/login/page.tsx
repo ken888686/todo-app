@@ -18,7 +18,9 @@ export default function LoginPage() {
     );
   }
 
-  const handleSignIn = async () => {
+  const handleSignIn = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+
     await signIn.social({
       provider: "google",
       fetchOptions: {
@@ -39,7 +41,12 @@ export default function LoginPage() {
           </p>
         </CardHeader>
         <CardContent className="grid gap-5">
-          <Button variant="outline" className="w-full" onClick={handleSignIn}>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={handleSignIn}
+            type="button"
+          >
             <Google size={24} />
             Google Login
           </Button>
