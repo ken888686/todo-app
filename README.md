@@ -6,6 +6,9 @@ This is a modern, responsive Todo application built with **Next.js 16 (App Route
 
 ## ✨ Key Features
 
+- **Authentication**: Secure user authentication powered by **Better Auth**.
+- **Social Login**: Support for Google Login out of the box.
+- **Personalized Data**: Each user's todo items are isolated and securely stored.
 - **Item Management**: Easily add, edit, and delete todo items.
 - **Inline Editing**: Click on an item's title to edit it directly, and save quickly with the `Enter` key.
 - **Status Tracking**: Quickly switch an item's status between `PENDING` or `DONE`.
@@ -18,11 +21,12 @@ This is a modern, responsive Todo application built with **Next.js 16 (App Route
 ## 🛠️ Tech Stack
 
 - **Framework**: [Next.js 16.1](https://nextjs.org/) (App Router)
+- **Authentication**: [Better Auth 1.4](https://www.better-auth.com/)
 - **Frontend Library**: [React 19.2](https://react.dev/)
 - **Styling**: [Tailwind CSS v4](https://tailwindcss.com/), [Radix UI](https://www.radix-ui.com/), [shadcn/ui](https://ui.shadcn.com/)
 - **Database**: [PostgreSQL](https://www.postgresql.org/)
 - **ORM**: [Prisma 7.2](https://www.prisma.io/) (with `@prisma/adapter-pg`)
-- **Icons**: [Lucide React](https://lucide.dev/)
+- **Icons**: [@deemlol/next-icons](https://www.npmjs.com/package/@deemlol/next-icons)
 - **Linting/Formatting**: [ESLint](https://eslint.org/), [Prettier](https://prettier.io/)
 
 ## 🚀 Quick Start
@@ -52,6 +56,14 @@ This is a modern, responsive Todo application built with **Next.js 16 (App Route
 
     ```env
     DATABASE_URL="postgresql://user:password@localhost:5432/todo_app"
+
+    # Better Auth Configuration
+    BETTER_AUTH_SECRET="your_better_auth_secret_here"
+    BETTER_AUTH_URL="http://localhost:3000"
+
+    # Google OAuth
+    GOOGLE_CLIENT_ID="your_google_client_id_here"
+    GOOGLE_CLIENT_SECRET="your_google_client_secret_here"
     ```
 
 4. **Database Initialization**

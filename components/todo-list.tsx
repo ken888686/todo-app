@@ -9,7 +9,7 @@ import {
 } from "@/lib/actions";
 import { Status } from "@/lib/generated/prisma/enums";
 import { ItemModel } from "@/lib/generated/prisma/models";
-import { Plus } from "lucide-react";
+import { Plus } from "@deemlol/next-icons";
 import { useRouter } from "next/navigation";
 import { use, useMemo, useOptimistic, useState, useTransition } from "react";
 import { toast } from "sonner";

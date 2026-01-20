@@ -5,7 +5,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Status } from "@/lib/generated/prisma/enums";
 import { ItemModel } from "@/lib/generated/prisma/models";
-import { Trash2 } from "lucide-react";
+import { Trash2 } from "@deemlol/next-icons";
 import { memo, useRef, useState } from "react";
 
 interface TodoItemProps {
