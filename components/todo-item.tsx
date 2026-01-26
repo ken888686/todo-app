@@ -1,12 +1,12 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Input } from "@/components/ui/input";
 import { Status } from "@/lib/generated/prisma/enums";
 import { ItemModel } from "@/lib/generated/prisma/models";
 import { Trash2 } from "@deemlol/next-icons";
+import { motion } from "framer-motion";
 import { memo, useRef, useState } from "react";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
 
 interface TodoItemProps {
   item: ItemModel;
@@ -45,23 +45,27 @@ export const TodoItem = memo(function TodoItem({
   };
 
   return (
-    <div
-      className="hover:bg-accent group flex items-center justify-between gap-5 rounded-lg border p-3 transition-colors hover:cursor-pointer"
-      onClick={() => {
-        if (!isEditing) {
-          onStatusChange(item.id, item.status !== Status.DONE);
-        }
-      }}
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.2 }}
+      className="group hover:border-border hover:bg-muted/30 flex items-center justify-between gap-3 border border-transparent p-2 transition-colors"
     >
       <div className="flex flex-1 items-center gap-3 overflow-hidden">
-        <Checkbox
-          id={`todo-${item.id}`}
-          checked={item.status === Status.DONE}
-          onCheckedChange={(checked) =>
-            onStatusChange(item.id, checked as boolean)
+        <button
+          onClick={() => onStatusChange(item.id, item.status !== Status.DONE)}
+          className={`border-foreground hover:bg-foreground hover:text-background flex h-5 w-5 items-center justify-center border text-xs font-bold transition-all ${
+            item.status === Status.DONE ? "bg-foreground text-background" : ""
+          }`}
+          aria-label={
+            item.status === Status.DONE ? "Mark as undo" : "Mark as done"
           }
-          onClick={(e) => e.stopPropagation()}
-        />
+        >
+          {item.status === Status.DONE && "X"}
+        </button>
+
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           {isEditing ? (
             <Input
@@ -75,11 +79,11 @@ export const TodoItem = memo(function TodoItem({
               onKeyDown={handleKeyDown}
             />
           ) : (
-            <label
-              className={`cursor-text truncate text-sm leading-none font-medium ${
+            <span
+              className={`cursor-text truncate text-sm font-medium transition-all ${
                 item.status === Status.DONE
-                  ? "text-muted-foreground line-through"
-                  : ""
+                  ? "text-muted-foreground line-through decoration-2"
+                  : "text-foreground"
               }`}
               onClick={(e) => {
                 e.stopPropagation();
@@ -88,7 +92,7 @@ export const TodoItem = memo(function TodoItem({
               }}
             >
               {item.title}
-            </label>
+            </span>
           )}
 
           {item.expiredAt && (
@@ -98,11 +102,10 @@ export const TodoItem = memo(function TodoItem({
           )}
         </div>
       </div>
-      <div className="flex items-center justify-end">
+      <div className="flex items-center justify-end opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
         <Button
           variant="ghost"
-          size="icon"
-          className="text-destructive opacity-0 transition-opacity group-hover:opacity-100 focus:opacity-100"
+          className="text-destructive flex p-1"
           onClick={(e) => {
             e.stopPropagation();
             onDelete(item.id);
@@ -112,6 +115,6 @@ export const TodoItem = memo(function TodoItem({
           <Trash2 className="h-4 w-4" />
         </Button>
       </div>
-    </div>
+    </motion.div>
   );
 });

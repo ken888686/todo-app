@@ -8,12 +8,12 @@ import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const router = useRouter();
-  const { data: session, isPending } = useSession();
+  const { isPending } = useSession();
 
   if (isPending) {
     return (
       <div className="flex h-dvh items-center justify-center">
-        <p className="text-secondary-foreground">Loading user info...</p>
+        <p className="text-secondary-foreground">Loading...</p>
       </div>
     );
   }
@@ -63,8 +63,14 @@ export default function LoginPage() {
           </div>
 
           <div className="grid gap-2">
-            <Button variant="outline" className="w-full" disabled>
-              Other login options (under construction)
+            <Button
+              variant="outline"
+              className="w-full overflow-hidden"
+              disabled
+            >
+              <p className="line-clamp-1">
+                Other login options (under construction)
+              </p>
             </Button>
           </div>
         </CardContent>

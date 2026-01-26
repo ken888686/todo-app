@@ -1,6 +1,5 @@
 "use client";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+
 import {
   addItem,
   deleteItem,
@@ -9,12 +8,16 @@ import {
 } from "@/lib/actions";
 import { Status } from "@/lib/generated/prisma/enums";
 import { ItemModel } from "@/lib/generated/prisma/models";
-import { Plus } from "@deemlol/next-icons";
+import { AnimatePresence, motion } from "framer-motion";
+import { CornerDownLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { use, useMemo, useOptimistic, useState, useTransition } from "react";
 import { toast } from "sonner";
 import { TodoItem } from "./todo-item";
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
 import { ScrollArea } from "./ui/scroll-area";
+import { Skeleton } from "./ui/skeleton";
 
 type OptimisticAction =
   | { type: "ADD"; item: ItemModel }
@@ -139,15 +142,18 @@ export function TodoList({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-4">
-      <form action={handleAdd} className="flex items-center gap-2">
+      <form
+        action={handleAdd}
+        className="group border-border focus-within:border-foreground relative flex items-center gap-2 pb-2"
+      >
         <Input
           name="title"
           placeholder="Add a new todo"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
+          autoComplete="off"
         />
         <Button
-          size="icon-lg"
           type="submit"
           disabled={
             isPending ||
@@ -158,28 +164,56 @@ export function TodoList({
           }
           aria-pressed="false"
         >
-          <Plus />
+          <CornerDownLeft size={16} />
         </Button>
       </form>
-      <ScrollArea className="min-h-0 flex-1 rounded-md border">
-        <div className="flex flex-col gap-3 p-4">
-          {filteredItems.length === 0 ? (
-            <div className="text-muted-foreground flex h-full flex-col items-center justify-center p-8">
-              <p>No tasks found</p>
-            </div>
-          ) : (
-            filteredItems.map((item) => (
-              <TodoItem
-                key={item.id}
-                item={item}
-                onStatusChange={handleStatusChange}
-                onDelete={handleDelete}
-                onUpdateTitle={handleSaveTitle}
-              />
-            ))
-          )}
+
+      <ScrollArea className="min-h-0 flex-1">
+        <div className="flex flex-col gap-1 p-1">
+          <AnimatePresence initial={false} mode="popLayout">
+            {filteredItems.length === 0 ? (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="text-muted-foreground flex flex-col items-center justify-center"
+              >
+                <p className="text-xs tracking-widest uppercase">
+                  [ System Idle ]
+                </p>
+              </motion.div>
+            ) : (
+              filteredItems.map((item) => (
+                <TodoItem
+                  key={item.id}
+                  item={item}
+                  onStatusChange={handleStatusChange}
+                  onDelete={handleDelete}
+                  onUpdateTitle={handleSaveTitle}
+                />
+              ))
+            )}
+          </AnimatePresence>
         </div>
       </ScrollArea>
+    </div>
+  );
+}
+
+export function TodoListSkeleton() {
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <div className="flex items-center gap-2 pb-2">
+        <Skeleton className="h-9 w-full" />
+        <Skeleton className="h-10 w-1/12" />
+      </div>
+      <div className="min-h-0 flex-1">
+        <div className="flex flex-col gap-1 p-1">
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
+        </div>
+      </div>
     </div>
   );
 }

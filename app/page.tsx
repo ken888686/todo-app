@@ -1,7 +1,6 @@
 import SignoutBtn from "@/components/signout-btn";
-import { TodoList } from "@/components/todo-list";
+import { TodoList, TodoListSkeleton } from "@/components/todo-list";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { headers } from "next/headers";
@@ -18,34 +17,20 @@ export default async function Home() {
   });
 
   return (
-    <div className="flex h-dvh flex-col items-center p-4 font-sans">
-      <Card className="flex h-full w-full max-w-xl flex-col">
-        <CardHeader className="flex items-center justify-between">
-          <CardTitle>My Todo List</CardTitle>
+    <main className="flex h-dvh flex-col items-center justify-center p-4">
+      <Card className="w-full max-w-2xl flex-1 border-2 shadow-[4px_4px_0px_0px_var(--foreground)]">
+        <CardHeader className="flex items-center justify-between border-b-2 pb-4">
+          <CardTitle className="text-xl font-bold">
+            {session?.user.name} の Shopping List
+          </CardTitle>
           <SignoutBtn />
         </CardHeader>
         <CardContent className="flex min-h-0 flex-1 flex-col">
-          <Suspense
-            fallback={
-              <div className="flex min-h-0 flex-1 flex-col gap-4">
-                <div className="flex items-center gap-2">
-                  <Skeleton className="h-9 w-full" />
-                  <Skeleton className="h-10 w-1/12" />
-                </div>
-                <div className="min-h-0 flex-1 rounded-md border">
-                  <div className="flex flex-col gap-3 p-4">
-                    <Skeleton className="h-16 w-full" />
-                    <Skeleton className="h-16 w-full" />
-                    <Skeleton className="h-16 w-full" />
-                  </div>
-                </div>
-              </div>
-            }
-          >
+          <Suspense fallback={<TodoListSkeleton />}>
             <TodoList initialItems={items} />
           </Suspense>
         </CardContent>
       </Card>
-    </div>
+    </main>
   );
 }
