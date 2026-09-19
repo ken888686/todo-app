@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { auth } from "./auth";
 import { prisma } from "./db";
+import { Prisma } from "./generated/prisma/client";
 import { Status } from "./generated/prisma/enums";
 import type {
   ItemCreateInput,
@@ -13,11 +14,20 @@ import {
   isValidItemId,
   isValidItemStatus,
   normalizeItemTitle,
+  normalizeItemTitleForComparison,
 } from "./item-validation";
 
 type ActionResult<T> =
-  | { success: true; data: T }
-  | { success: false; error: string };
+  { success: true; data: T } | { success: false; error: string };
+
+const DUPLICATE_ITEM_ERROR = "A todo with this title already exists";
+
+function isUniqueConstraintError(error: unknown) {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2002"
+  );
+}
 
 export async function addItem(
   title: unknown,
@@ -35,8 +45,22 @@ export async function addItem(
       return titleResult;
     }
 
+    const normalizedTitle = normalizeItemTitleForComparison(titleResult.value);
+    const existingItem = await prisma.item.findFirst({
+      where: {
+        userId: session.user.id,
+        normalizedTitle,
+      },
+      select: { id: true },
+    });
+
+    if (existingItem) {
+      return { success: false, error: DUPLICATE_ITEM_ERROR };
+    }
+
     const itemData: Omit<ItemCreateInput, "user"> = {
       title: titleResult.value,
+      normalizedTitle,
       status: Status.PENDING,
     };
     const newItem = await prisma.item.create({
@@ -47,7 +71,10 @@ export async function addItem(
     });
     revalidatePath("/");
     return { success: true, data: newItem };
-  } catch {
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      return { success: false, error: DUPLICATE_ITEM_ERROR };
+    }
     return { success: false, error: "Failed to create item" };
   }
 }
@@ -146,9 +173,23 @@ export async function updateItemTitle(
     if (!titleResult.success) {
       return titleResult;
     }
+    const normalizedTitle = normalizeItemTitleForComparison(titleResult.value);
+    const existingItem = await prisma.item.findFirst({
+      where: {
+        userId: session.user.id,
+        normalizedTitle,
+        id: { not: id },
+      },
+      select: { id: true },
+    });
+
+    if (existingItem) {
+      return { success: false, error: DUPLICATE_ITEM_ERROR };
+    }
+
     const { count } = await prisma.item.updateMany({
       where: { id, userId: session.user.id },
-      data: { title: titleResult.value },
+      data: { title: titleResult.value, normalizedTitle },
     });
 
     if (count === 0) {
@@ -157,7 +198,10 @@ export async function updateItemTitle(
 
     revalidatePath("/");
     return { success: true, data: undefined };
-  } catch {
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      return { success: false, error: DUPLICATE_ITEM_ERROR };
+    }
     return { success: false, error: "Failed to update item title" };
   }
 }

@@ -84,6 +84,10 @@ This is a modern, responsive Todo application built with **Next.js 16 (App Route
 
    New databases can use `npx prisma migrate deploy` directly.
 
+   The migrations enforce one case-insensitive todo title per user. If the
+   existing database contains duplicate titles for the same user, resolve
+   those duplicates before applying the latest migration.
+
 5. **Start the Development Server**
 
    ```bash

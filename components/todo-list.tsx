@@ -107,6 +107,7 @@ export function TodoList({
       const newItem: ItemModel = {
         id: tempId,
         title: titleResult.value,
+        normalizedTitle: normalizeItemTitleForComparison(titleResult.value),
         status: Status.PENDING,
         dueAt: null,
         userId: "optimistic-user",
@@ -150,11 +151,31 @@ export function TodoList({
   }
 
   function handleSaveTitle(id: number, newTitle: string) {
+    const titleResult = normalizeItemTitle(newTitle);
+    if (!titleResult.success) {
+      toast.error(titleResult.error);
+      return;
+    }
+
+    const normalizedTitle = normalizeItemTitleForComparison(titleResult.value);
+    if (
+      optimisticItems.some(
+        (item) => item.id !== id && item.normalizedTitle === normalizedTitle,
+      )
+    ) {
+      toast.error("A todo with this title already exists");
+      return;
+    }
+
     setItemPending(id, true);
     startTransition(async () => {
       try {
-        setOptimisticItems({ type: "UPDATE_TITLE", id, title: newTitle });
-        const result = await updateItemTitle(id, newTitle);
+        setOptimisticItems({
+          type: "UPDATE_TITLE",
+          id,
+          title: titleResult.value,
+        });
+        const result = await updateItemTitle(id, titleResult.value);
 
         if (!result.success) {
           toast.error(result.error);

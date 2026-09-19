@@ -19,16 +19,18 @@ enum Status {
 }
 
 model Item {
-  id        Int       @id @default(autoincrement())
-  title     String
-  status    Status    @default(PENDING)
-  dueAt     DateTime? @default(dbgenerated("NOW() + interval '1 day'")) @map("expiredAt")
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id              Int       @id @default(autoincrement())
+  title           String
+  normalizedTitle String
+  status          Status    @default(PENDING)
+  dueAt           DateTime? @default(dbgenerated("NOW() + interval '1 day'")) @map("expiredAt")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   userId String
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, normalizedTitle])
   @@index([status])
   @@index([userId])
   @@index([userId, status, title, createdAt])

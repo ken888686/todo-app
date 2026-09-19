@@ -4,6 +4,7 @@ import {
   isValidItemId,
   isValidItemStatus,
   normalizeItemTitle,
+  normalizeItemTitleForComparison,
 } from "../lib/item-validation";
 
 test("normalizes valid item titles", () => {
@@ -16,6 +17,10 @@ test("normalizes valid item titles", () => {
 test("rejects empty and overlong item titles", () => {
   assert.equal(normalizeItemTitle("   ").success, false);
   assert.equal(normalizeItemTitle("a".repeat(201)).success, false);
+});
+
+test("normalizes item titles for duplicate comparisons", () => {
+  assert.equal(normalizeItemTitleForComparison("  Buy MILK  "), "buy milk");
 });
 
 test("validates item ids", () => {
