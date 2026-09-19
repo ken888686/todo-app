@@ -33,7 +33,7 @@ model Item {
   @@unique([userId, normalizedTitle])
   @@index([status])
   @@index([userId])
-  @@index([userId, status, title, createdAt])
+  @@index([userId, status, title, createdAt, id])
   @@map("items")
 }
 
@@ -101,4 +101,13 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+}
+
+model RateLimit {
+  id          String @id
+  key         String @unique
+  count       Int
+  lastRequest BigInt
+
+  @@map("rateLimit")
 }

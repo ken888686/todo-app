@@ -33,7 +33,7 @@ This is a modern, responsive Todo application built with **Next.js 16 (App Route
 
 ### Prerequisites
 
-- Node.js (v20 or above)
+- Node.js 24 (see `.nvmrc`)
 - PostgreSQL database instance
 
 ### Installation Steps
@@ -79,6 +79,9 @@ This is a modern, responsive Todo application built with **Next.js 16 (App Route
 
    New databases can use `npx prisma migrate deploy` directly.
 
+   The migration also creates Better Auth's shared PostgreSQL rate-limit
+   storage, so production instances use the same limits across deployments.
+
    The migrations enforce one case-insensitive todo title per user. If the
    existing database contains duplicate titles for the same user, resolve
    those duplicates before applying the latest migration.
@@ -103,6 +106,7 @@ This is a modern, responsive Todo application built with **Next.js 16 (App Route
 ```bash
 npm run test
 npm run test:integration
+npm run test:e2e
 npm run lint
 npm run prisma:generate
 npm run typecheck

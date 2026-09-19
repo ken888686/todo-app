@@ -1,8 +1,7 @@
 export const MAX_ITEM_TITLE_LENGTH = 200;
 
 export type ValidationResult<T> =
-  | { success: true; value: T }
-  | { success: false; error: string };
+  { success: true; value: T } | { success: false; error: string };
 
 export function normalizeItemTitle(value: unknown): ValidationResult<string> {
   if (typeof value !== "string") {
@@ -26,7 +25,11 @@ export function normalizeItemTitle(value: unknown): ValidationResult<string> {
 }
 
 export function normalizeItemTitleForComparison(value: string) {
-  return value.trim().toLocaleLowerCase();
+  return value.trim().toLowerCase();
+}
+
+export function getDefaultItemDueAt(now = new Date()) {
+  return new Date(now.getTime() + 24 * 60 * 60 * 1000);
 }
 
 export function isValidItemId(value: unknown): value is number {

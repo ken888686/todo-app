@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  getDefaultItemDueAt,
   isValidItemId,
   isValidItemStatus,
   normalizeItemTitle,
@@ -21,6 +22,15 @@ test("rejects empty and overlong item titles", () => {
 
 test("normalizes item titles for duplicate comparisons", () => {
   assert.equal(normalizeItemTitleForComparison("  Buy MILK  "), "buy milk");
+  assert.equal(normalizeItemTitleForComparison("  İTEM  "), "i̇tem");
+});
+
+test("creates a due date exactly one day after the reference time", () => {
+  const reference = new Date("2026-09-19T12:00:00.000Z");
+  assert.equal(
+    getDefaultItemDueAt(reference).toISOString(),
+    "2026-09-20T12:00:00.000Z",
+  );
 });
 
 test("validates item ids", () => {

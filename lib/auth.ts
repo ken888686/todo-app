@@ -24,7 +24,7 @@ export const auth = betterAuth({
     enabled: true,
     window: 60,
     max: 100,
-    storage: "memory",
+    storage: "database",
     customRules: {
       "/sign-in/social": {
         window: 60,

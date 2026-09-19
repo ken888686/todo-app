@@ -7,21 +7,23 @@ import { Prisma } from "./generated/prisma/client";
 import { Status } from "./generated/prisma/enums";
 import type {
   ItemCreateInput,
-  ItemModel,
   ItemUpdateInput,
 } from "./generated/prisma/models";
 import {
   getItemPage,
-  normalizeItemPage,
+  normalizeItemCursor,
   normalizeItemSearch,
+  type ItemViewModel,
   type ItemPage,
 } from "./item-query";
 import {
+  getDefaultItemDueAt,
   isValidItemId,
   isValidItemStatus,
   normalizeItemTitle,
   normalizeItemTitleForComparison,
 } from "./item-validation";
+import { logServerError } from "./logger";
 
 type ActionResult<T> =
   { success: true; data: T } | { success: false; error: string };
@@ -36,12 +38,12 @@ function isUniqueConstraintError(error: unknown) {
 }
 
 function reportActionError(action: string, error: unknown) {
-  console.error(`[todo-action:${action}]`, error);
+  logServerError(`todo-action.${action}`, error);
 }
 
 export async function loadMoreItems(
   search: unknown,
-  page: unknown,
+  after: unknown,
 ): Promise<ActionResult<ItemPage>> {
   try {
     const session = await auth.api.getSession({
@@ -51,9 +53,8 @@ export async function loadMoreItems(
       return { success: false, error: "Unauthorized" };
     }
 
-    const normalizedPage = normalizeItemPage(page);
-    if (normalizedPage === null || normalizedPage === 0) {
-      return { success: false, error: "Invalid item page" };
+    if (normalizeItemCursor(after) === null) {
+      return { success: false, error: "Invalid item cursor" };
     }
 
     return {
@@ -61,7 +62,7 @@ export async function loadMoreItems(
       data: await getItemPage(
         session.user.id,
         normalizeItemSearch(search),
-        normalizedPage,
+        after,
       ),
     };
   } catch (error) {
@@ -72,7 +73,7 @@ export async function loadMoreItems(
 
 export async function addItem(
   title: unknown,
-): Promise<ActionResult<ItemModel>> {
+): Promise<ActionResult<ItemViewModel>> {
   try {
     const session = await auth.api.getSession({
       headers: await headers(),
@@ -87,18 +88,6 @@ export async function addItem(
     }
 
     const normalizedTitle = normalizeItemTitleForComparison(titleResult.value);
-    const existingItem = await prisma.item.findFirst({
-      where: {
-        userId: session.user.id,
-        normalizedTitle,
-      },
-      select: { id: true },
-    });
-
-    if (existingItem) {
-      return { success: false, error: DUPLICATE_ITEM_ERROR };
-    }
-
     const itemData: Omit<ItemCreateInput, "user"> = {
       title: titleResult.value,
       normalizedTitle,
@@ -108,6 +97,13 @@ export async function addItem(
       data: {
         ...itemData,
         userId: session.user.id,
+      },
+      select: {
+        id: true,
+        title: true,
+        normalizedTitle: true,
+        status: true,
+        dueAt: true,
       },
     });
     revalidatePath("/");
@@ -146,9 +142,7 @@ export async function updateItemStatus(
     };
 
     if (status === Status.PENDING) {
-      const tomorrow = new Date();
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      updateData.dueAt = tomorrow;
+      updateData.dueAt = getDefaultItemDueAt();
     }
 
     const { count } = await prisma.item.updateMany({
@@ -218,19 +212,6 @@ export async function updateItemTitle(
       return titleResult;
     }
     const normalizedTitle = normalizeItemTitleForComparison(titleResult.value);
-    const existingItem = await prisma.item.findFirst({
-      where: {
-        userId: session.user.id,
-        normalizedTitle,
-        id: { not: id },
-      },
-      select: { id: true },
-    });
-
-    if (existingItem) {
-      return { success: false, error: DUPLICATE_ITEM_ERROR };
-    }
-
     const { count } = await prisma.item.updateMany({
       where: { id, userId: session.user.id },
       data: { title: titleResult.value, normalizedTitle },

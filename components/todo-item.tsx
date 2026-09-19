@@ -1,7 +1,7 @@
 "use client";
 
 import { Status } from "@/lib/generated/prisma/enums";
-import type { ItemModel } from "@/lib/generated/prisma/models";
+import type { ItemViewModel } from "@/lib/item-query";
 import { Trash2 } from "@deemlol/next-icons";
 import { motion } from "framer-motion";
 import { Check } from "lucide-react";
@@ -10,7 +10,7 @@ import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 
 interface TodoItemProps {
-  item: ItemModel;
+  item: ItemViewModel;
   onStatusChange: (id: number, checked: boolean) => void;
   onDelete: (id: number) => void;
   onUpdateTitle: (id: number, newTitle: string) => void;

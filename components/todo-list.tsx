@@ -8,11 +8,12 @@ import {
   updateItemTitle,
 } from "@/lib/actions";
 import {
+  getDefaultItemDueAt,
   normalizeItemTitle,
   normalizeItemTitleForComparison,
 } from "@/lib/item-validation";
 import { Status } from "@/lib/generated/prisma/enums";
-import type { ItemModel } from "@/lib/generated/prisma/models";
+import type { ItemPage, ItemViewModel } from "@/lib/item-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { CornerDownLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -33,9 +34,9 @@ import { ScrollArea } from "./ui/scroll-area";
 import { Skeleton } from "./ui/skeleton";
 
 type OptimisticAction =
-  | { type: "ADD"; item: ItemModel }
+  | { type: "ADD"; item: ItemViewModel }
   | { type: "DELETE"; id: number }
-  | { type: "UPDATE_STATUS"; id: number; status: Status }
+  | { type: "UPDATE_STATUS"; id: number; status: Status; dueAt: Date | null }
   | {
       type: "UPDATE_TITLE";
       id: number;
@@ -44,23 +45,22 @@ type OptimisticAction =
     };
 
 export function TodoList({
-  initialItems,
-  initialHasMore,
+  initialPage,
   initialQuery,
 }: {
-  initialItems: Promise<ItemModel[]>;
-  initialHasMore: Promise<boolean>;
+  initialPage: Promise<ItemPage>;
   initialQuery: string;
 }) {
   const router = useRouter();
-  const items = use(initialItems);
-  const initialHasMoreValue = use(initialHasMore);
-  const [additionalItems, setAdditionalItems] = useState<ItemModel[]>([]);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [hasMore, setHasMore] = useState(initialHasMoreValue);
+  const page = use(initialPage);
+  const items = page.items;
+  const [additionalItems, setAdditionalItems] = useState<ItemViewModel[]>([]);
+  const [cursor, setCursor] = useState(page.nextCursor);
+  const [hasMore, setHasMore] = useState(page.hasMore);
   const [inputValue, setInputValue] = useState(initialQuery);
   const [isPending, startTransition] = useTransition();
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [isSearchPending, setIsSearchPending] = useState(false);
   const [pendingIds, setPendingIds] = useState<Set<number>>(new Set());
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -87,7 +87,9 @@ export function TodoList({
           return state.filter((item) => item.id !== action.id);
         case "UPDATE_STATUS":
           return state.map((item) =>
-            item.id === action.id ? { ...item, status: action.status } : item,
+            item.id === action.id
+              ? { ...item, status: action.status, dueAt: action.dueAt }
+              : item,
           );
         case "UPDATE_TITLE":
           return state.map((item) =>
@@ -108,9 +110,7 @@ export function TodoList({
   const filteredItems = useMemo(
     () =>
       optimisticItems.filter((item) =>
-        item.title
-          .toLocaleLowerCase()
-          .includes(inputValue.trim().toLocaleLowerCase()),
+        item.title.toLowerCase().includes(inputValue.trim().toLowerCase()),
       ),
     [optimisticItems, inputValue],
   );
@@ -129,6 +129,7 @@ export function TodoList({
 
   function handleSearchChange(value: string) {
     setInputValue(value);
+    setIsSearchPending(true);
 
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
@@ -139,7 +140,12 @@ export function TodoList({
       const nextUrl = query ? `/?q=${encodeURIComponent(query)}` : "/";
       const currentUrl = `${window.location.pathname}${window.location.search}`;
       if (nextUrl !== currentUrl) {
-        router.replace(nextUrl, { scroll: false });
+        startTransition(() => {
+          router.replace(nextUrl, { scroll: false });
+          setIsSearchPending(false);
+        });
+      } else {
+        setIsSearchPending(false);
       }
     }, 250);
   }
@@ -164,15 +170,12 @@ export function TodoList({
 
     startTransition(async () => {
       const tempId = Date.now();
-      const newItem: ItemModel = {
+      const newItem: ItemViewModel = {
         id: tempId,
         title: titleResult.value,
         normalizedTitle: normalizeItemTitleForComparison(titleResult.value),
         status: Status.PENDING,
-        dueAt: null,
-        userId: "optimistic-user",
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        dueAt: getDefaultItemDueAt(),
       };
 
       setOptimisticItems({ type: "ADD", item: newItem });
@@ -194,7 +197,17 @@ export function TodoList({
     startTransition(async () => {
       try {
         const newStatus: Status = checked ? Status.DONE : Status.PENDING;
-        setOptimisticItems({ type: "UPDATE_STATUS", id, status: newStatus });
+        const currentItem = optimisticItems.find((item) => item.id === id);
+        const dueAt =
+          newStatus === Status.PENDING
+            ? getDefaultItemDueAt()
+            : (currentItem?.dueAt ?? null);
+        setOptimisticItems({
+          type: "UPDATE_STATUS",
+          id,
+          status: newStatus,
+          dueAt,
+        });
 
         const result = await updateItemStatus(id, newStatus);
 
@@ -251,23 +264,22 @@ export function TodoList({
   }
 
   function handleLoadMore() {
-    if (isLoadingMore || !hasMore) {
+    if (isLoadingMore || !hasMore || !cursor || isSearchPending) {
       return;
     }
 
-    const nextPage = currentPage + 1;
     setIsLoadingMore(true);
     startTransition(async () => {
       try {
-        const result = await loadMoreItems(inputValue, nextPage);
+        const result = await loadMoreItems(inputValue, cursor);
         if (!result.success) {
           toast.error(result.error);
           return;
         }
 
         setAdditionalItems((current) => [...current, ...result.data.items]);
-        setCurrentPage(nextPage);
         setHasMore(result.data.hasMore);
+        setCursor(result.data.nextCursor);
       } finally {
         setIsLoadingMore(false);
       }
@@ -319,6 +331,7 @@ export function TodoList({
           className="size-11"
           disabled={
             isPending ||
+            isSearchPending ||
             inputValue.trim() === "" ||
             optimisticItems.some(
               (item) =>
@@ -367,12 +380,12 @@ export function TodoList({
           </AnimatePresence>
         </div>
       </ScrollArea>
-      {hasMore && (
+      {hasMore && cursor && (
         <Button
           type="button"
           variant="outline"
           onClick={handleLoadMore}
-          disabled={isPending || isLoadingMore}
+          disabled={isPending || isLoadingMore || isSearchPending}
         >
           {isLoadingMore ? "Loading..." : "Load more"}
         </Button>

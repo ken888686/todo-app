@@ -37,8 +37,7 @@ export default async function Home({
           <Suspense fallback={<TodoListSkeleton />}>
             <TodoList
               key={search}
-              initialHasMore={itemPage.then((page) => page.hasMore)}
-              initialItems={itemPage.then((page) => page.items)}
+              initialPage={itemPage}
               initialQuery={search}
             />
           </Suspense>
