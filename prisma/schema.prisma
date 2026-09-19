@@ -22,7 +22,7 @@ model Item {
   id        Int       @id @default(autoincrement())
   title     String
   status    Status    @default(PENDING)
-  expiredAt DateTime? @default(dbgenerated("NOW() + interval '1 day'"))
+  dueAt     DateTime? @default(dbgenerated("NOW() + interval '1 day'")) @map("expiredAt")
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
 
@@ -31,6 +31,7 @@ model Item {
 
   @@index([status])
   @@index([userId])
+  @@index([userId, status, title, createdAt])
   @@map("items")
 }
 

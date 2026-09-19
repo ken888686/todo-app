@@ -4,17 +4,24 @@ import { headers } from "next/headers";
 import { auth } from "./auth";
 import { prisma } from "./db";
 import { Status } from "./generated/prisma/enums";
-import {
+import type {
   ItemCreateInput,
   ItemModel,
   ItemUpdateInput,
 } from "./generated/prisma/models";
+import {
+  isValidItemId,
+  isValidItemStatus,
+  normalizeItemTitle,
+} from "./item-validation";
 
 type ActionResult<T> =
   | { success: true; data: T }
   | { success: false; error: string };
 
-export async function addItem(title: string): Promise<ActionResult<ItemModel>> {
+export async function addItem(
+  title: unknown,
+): Promise<ActionResult<ItemModel>> {
   try {
     const session = await auth.api.getSession({
       headers: await headers(),
@@ -23,12 +30,13 @@ export async function addItem(title: string): Promise<ActionResult<ItemModel>> {
       return { success: false, error: "Unauthorized" };
     }
 
-    if (!title || title.trim().length === 0) {
-      return { success: false, error: "Title cannot be empty" };
+    const titleResult = normalizeItemTitle(title);
+    if (!titleResult.success) {
+      return titleResult;
     }
 
     const itemData: Omit<ItemCreateInput, "user"> = {
-      title,
+      title: titleResult.value,
       status: Status.PENDING,
     };
     const newItem = await prisma.item.create({
@@ -39,16 +47,15 @@ export async function addItem(title: string): Promise<ActionResult<ItemModel>> {
     });
     revalidatePath("/");
     return { success: true, data: newItem };
-  } catch (e) {
-    const error = e instanceof Error ? e.message : "Failed to create item";
-    return { success: false, error };
+  } catch {
+    return { success: false, error: "Failed to create item" };
   }
 }
 
 export async function updateItemStatus(
-  id: number,
-  status: Status,
-): Promise<ActionResult<ItemModel>> {
+  id: unknown,
+  status: unknown,
+): Promise<ActionResult<void>> {
   try {
     const session = await auth.api.getSession({
       headers: await headers(),
@@ -57,14 +64,22 @@ export async function updateItemStatus(
       return { success: false, error: "Unauthorized" };
     }
 
+    if (!isValidItemId(id)) {
+      return { success: false, error: "Invalid item id" };
+    }
+
+    if (!isValidItemStatus(status)) {
+      return { success: false, error: "Invalid item status" };
+    }
+
     const updateData: ItemUpdateInput = {
-      status,
+      status: status === Status.DONE ? Status.DONE : Status.PENDING,
     };
 
     if (status === Status.PENDING) {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
-      updateData.expiredAt = tomorrow;
+      updateData.dueAt = tomorrow;
     }
 
     const { count } = await prisma.item.updateMany({
@@ -77,21 +92,23 @@ export async function updateItemStatus(
     }
 
     revalidatePath("/");
-    return { success: true, data: {} as ItemModel };
-  } catch (e) {
-    const error =
-      e instanceof Error ? e.message : "Failed to update item status";
-    return { success: false, error };
+    return { success: true, data: undefined };
+  } catch {
+    return { success: false, error: "Failed to update item status" };
   }
 }
 
-export async function deleteItem(id: number): Promise<ActionResult<ItemModel>> {
+export async function deleteItem(id: unknown): Promise<ActionResult<void>> {
   try {
     const session = await auth.api.getSession({
       headers: await headers(),
     });
     if (!session?.user.id) {
       return { success: false, error: "Unauthorized" };
+    }
+
+    if (!isValidItemId(id)) {
+      return { success: false, error: "Invalid item id" };
     }
 
     const { count } = await prisma.item.deleteMany({
@@ -103,17 +120,16 @@ export async function deleteItem(id: number): Promise<ActionResult<ItemModel>> {
     }
 
     revalidatePath("/");
-    return { success: true, data: {} as ItemModel };
-  } catch (e) {
-    const error = e instanceof Error ? e.message : "Failed to delete item";
-    return { success: false, error };
+    return { success: true, data: undefined };
+  } catch {
+    return { success: false, error: "Failed to delete item" };
   }
 }
 
 export async function updateItemTitle(
-  id: number,
-  title: string,
-): Promise<ActionResult<ItemModel>> {
+  id: unknown,
+  title: unknown,
+): Promise<ActionResult<void>> {
   try {
     const session = await auth.api.getSession({
       headers: await headers(),
@@ -122,12 +138,17 @@ export async function updateItemTitle(
       return { success: false, error: "Unauthorized" };
     }
 
-    if (!title || title.trim().length === 0) {
-      return { success: false, error: "Title cannot be empty" };
+    if (!isValidItemId(id)) {
+      return { success: false, error: "Invalid item id" };
+    }
+
+    const titleResult = normalizeItemTitle(title);
+    if (!titleResult.success) {
+      return titleResult;
     }
     const { count } = await prisma.item.updateMany({
       where: { id, userId: session.user.id },
-      data: { title },
+      data: { title: titleResult.value },
     });
 
     if (count === 0) {
@@ -135,10 +156,8 @@ export async function updateItemTitle(
     }
 
     revalidatePath("/");
-    return { success: true, data: {} as ItemModel };
-  } catch (e) {
-    const error =
-      e instanceof Error ? e.message : "Failed to update item title";
-    return { success: false, error };
+    return { success: true, data: undefined };
+  } catch {
+    return { success: false, error: "Failed to update item title" };
   }
 }

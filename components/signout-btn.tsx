@@ -1,30 +1,44 @@
 "use client";
 import { signIn, signOut, useSession } from "@/lib/auth-client";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
 import { Button } from "./ui/button";
 
 export default function SignoutBtn() {
   const router = useRouter();
-  const { data: session, isPending, error } = useSession();
+  const { data: session, isPending } = useSession();
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleLogin = async () => {
-    await signIn.social({
-      provider: "google",
-    });
+    setIsProcessing(true);
+    try {
+      await signIn.social({ provider: "google" });
+    } catch {
+      toast.error("Login failed. Please try again.");
+      setIsProcessing(false);
+    }
   };
 
-  const handleSignout = async () =>
-    await signOut({
-      fetchOptions: {
-        onSuccess: () => {
-          router.push("/login");
+  const handleSignout = async () => {
+    setIsProcessing(true);
+    try {
+      await signOut({
+        fetchOptions: {
+          onSuccess: () => {
+            router.push("/login");
+          },
         },
-      },
-    });
+      });
+    } catch {
+      toast.error("Sign out failed. Please try again.");
+      setIsProcessing(false);
+    }
+  };
 
-  if (isPending) {
+  if (isPending || isProcessing) {
     return (
-      <Button className="" disabled>
+      <Button disabled aria-busy="true">
         Loading...
       </Button>
     );

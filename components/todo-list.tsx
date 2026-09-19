@@ -6,8 +6,12 @@ import {
   updateItemStatus,
   updateItemTitle,
 } from "@/lib/actions";
+import {
+  normalizeItemTitle,
+  normalizeItemTitleForComparison,
+} from "@/lib/item-validation";
 import { Status } from "@/lib/generated/prisma/enums";
-import { ItemModel } from "@/lib/generated/prisma/models";
+import type { ItemModel } from "@/lib/generated/prisma/models";
 import { AnimatePresence, motion } from "framer-motion";
 import { CornerDownLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -34,6 +38,7 @@ export function TodoList({
   const items = use(initialItems);
   const [inputValue, setInputValue] = useState("");
   const [isPending, startTransition] = useTransition();
+  const [pendingIds, setPendingIds] = useState<Set<number>>(new Set());
 
   const [optimisticItems, setOptimisticItems] = useOptimistic(
     items,
@@ -60,20 +65,40 @@ export function TodoList({
   const filteredItems = useMemo(
     () =>
       optimisticItems.filter((item) =>
-        item.title.toLowerCase().includes(inputValue.toLowerCase()),
+        item.title
+          .toLocaleLowerCase()
+          .includes(inputValue.trim().toLocaleLowerCase()),
       ),
     [optimisticItems, inputValue],
   );
 
+  function setItemPending(id: number, pending: boolean) {
+    setPendingIds((current) => {
+      const next = new Set(current);
+      if (pending) {
+        next.add(id);
+      } else {
+        next.delete(id);
+      }
+      return next;
+    });
+  }
+
   async function handleAdd(formData: FormData) {
-    const title = formData.get("title")?.toString();
+    const titleResult = normalizeItemTitle(formData.get("title"));
+    if (!titleResult.success) {
+      toast.error(titleResult.error);
+      return;
+    }
+
+    const normalizedTitle = normalizeItemTitleForComparison(titleResult.value);
     if (
-      !title ||
-      title.trim() === "" ||
-      optimisticItems.some((item) =>
-        item.title.toLowerCase().includes(title.toLowerCase()),
+      optimisticItems.some(
+        (item) =>
+          normalizeItemTitleForComparison(item.title) === normalizedTitle,
       )
     ) {
+      toast.error("A todo with this title already exists");
       return;
     }
 
@@ -81,9 +106,9 @@ export function TodoList({
       const tempId = Date.now();
       const newItem: ItemModel = {
         id: tempId,
-        title: inputValue,
+        title: titleResult.value,
         status: Status.PENDING,
-        expiredAt: null,
+        dueAt: null,
         userId: "optimistic-user",
         createdAt: new Date(),
         updatedAt: new Date(),
@@ -92,50 +117,75 @@ export function TodoList({
       setOptimisticItems({ type: "ADD", item: newItem });
       setInputValue("");
 
-      const result = await addItem(inputValue);
-
-      if (!result.success) {
-        toast.error(result.error);
-        router.refresh();
-      }
-    });
-  }
-
-  function handleStatusChange(id: number, checked: boolean) {
-    startTransition(async () => {
-      const newStatus: Status = checked ? Status.DONE : Status.PENDING;
-      setOptimisticItems({ type: "UPDATE_STATUS", id, status: newStatus });
-
-      const result = await updateItemStatus(id, newStatus);
+      const result = await addItem(titleResult.value);
 
       if (!result.success) {
         toast.error(result.error);
         router.refresh();
       } else {
-        toast("Item status updated");
+        toast.success("Todo added");
+      }
+    });
+  }
+
+  function handleStatusChange(id: number, checked: boolean) {
+    setItemPending(id, true);
+    startTransition(async () => {
+      try {
+        const newStatus: Status = checked ? Status.DONE : Status.PENDING;
+        setOptimisticItems({ type: "UPDATE_STATUS", id, status: newStatus });
+
+        const result = await updateItemStatus(id, newStatus);
+
+        if (!result.success) {
+          toast.error(result.error);
+          router.refresh();
+        } else {
+          toast.success("Todo status updated");
+        }
+      } finally {
+        setItemPending(id, false);
       }
     });
   }
 
   function handleSaveTitle(id: number, newTitle: string) {
+    setItemPending(id, true);
     startTransition(async () => {
-      setOptimisticItems({ type: "UPDATE_TITLE", id, title: newTitle });
-      const result = await updateItemTitle(id, newTitle);
+      try {
+        setOptimisticItems({ type: "UPDATE_TITLE", id, title: newTitle });
+        const result = await updateItemTitle(id, newTitle);
 
-      if (!result.success) {
-        toast.error(result.error);
-        router.refresh();
+        if (!result.success) {
+          toast.error(result.error);
+          router.refresh();
+        } else {
+          toast.success("Todo updated");
+        }
+      } finally {
+        setItemPending(id, false);
       }
     });
   }
 
   function handleDelete(id: number) {
+    if (!window.confirm("Delete this todo?")) {
+      return;
+    }
+
+    setItemPending(id, true);
     startTransition(async () => {
-      setOptimisticItems({ type: "DELETE", id });
-      const result = await deleteItem(id);
-      if (!result.success) {
-        toast.error(result.error);
-        router.refresh();
+      try {
+        setOptimisticItems({ type: "DELETE", id });
+        const result = await deleteItem(id);
+        if (!result.success) {
+          toast.error(result.error);
+          router.refresh();
+        } else {
+          toast.success("Todo deleted");
+        }
+      } finally {
+        setItemPending(id, false);
       }
     });
   }
@@ -146,25 +196,34 @@ export function TodoList({
         action={handleAdd}
         className="group border-border focus-within:border-foreground relative flex items-center gap-2 pb-2"
       >
+        <label htmlFor="todo-title" className="sr-only">
+          Search or add a todo
+        </label>
         <Input
+          id="todo-title"
           name="title"
-          placeholder="Add a new todo"
+          placeholder="Search or add a todo"
+          className="h-11"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           autoComplete="off"
         />
         <Button
           type="submit"
+          className="size-11"
           disabled={
             isPending ||
             inputValue.trim() === "" ||
-            filteredItems.some(
-              (item) => item.title.toLowerCase() === inputValue.toLowerCase(),
+            optimisticItems.some(
+              (item) =>
+                normalizeItemTitleForComparison(item.title) ===
+                normalizeItemTitleForComparison(inputValue),
             )
           }
-          aria-pressed="false"
+          aria-label="Add todo"
         >
           <CornerDownLeft size={16} />
+          <span className="sr-only">Add todo</span>
         </Button>
       </form>
 
@@ -178,8 +237,13 @@ export function TodoList({
                 exit={{ opacity: 0 }}
                 className="text-muted-foreground flex flex-col items-center justify-center"
               >
-                <p className="text-xs tracking-widest uppercase">
-                  [ System Idle ]
+                <p className="text-sm font-medium">
+                  {inputValue.trim() ? "No matching todos" : "No todos yet"}
+                </p>
+                <p className="text-muted-foreground text-xs">
+                  {inputValue.trim()
+                    ? "Press Enter to add this as a new todo."
+                    : "Add your first todo above."}
                 </p>
               </motion.div>
             ) : (
@@ -190,6 +254,7 @@ export function TodoList({
                   onStatusChange={handleStatusChange}
                   onDelete={handleDelete}
                   onUpdateTitle={handleSaveTitle}
+                  isPending={pendingIds.has(item.id)}
                 />
               ))
             )}

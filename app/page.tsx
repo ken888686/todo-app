@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 export default async function Home() {
@@ -11,8 +12,12 @@ export default async function Home() {
     headers: await headers(),
   });
 
+  if (!session) {
+    redirect("/login");
+  }
+
   const items = prisma.item.findMany({
-    where: { userId: session?.user.id },
+    where: { userId: session.user.id },
     orderBy: [{ status: "asc" }, { title: "asc" }, { createdAt: "desc" }],
   });
 

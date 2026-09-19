@@ -14,7 +14,7 @@ This is a modern, responsive Todo application built with **Next.js 16 (App Route
 - **Status Tracking**: Quickly switch an item's status between `PENDING` or `DONE`.
 - **Smart Integrated Input**: A single input field serves both "Search" and "Add" functionalities. It filters items in real-time as you type, and allows direct addition of a new item if no matches are found, significantly enhancing operational efficiency.
 - **Smart Sorting**: Items are automatically sorted by status (`PENDING` first), title (alphabetical order), and creation time.
-- **Automatic Expiry Tracking**: New items are set to expire in 1 day by default, making it easy to track task urgency.
+- **Due-date Tracking**: New items receive a due date 1 day in the future by default, with overdue status shown for unfinished items.
 - **Responsive Design**: Built with **Tailwind CSS v4** and **Radix UI**, ensuring seamless operation on mobile and desktop.
 - **Type Safety**: Utilizes TypeScript and Prisma's auto-generated types to ensure end-to-end development safety.
 
@@ -40,47 +40,66 @@ This is a modern, responsive Todo application built with **Next.js 16 (App Route
 
 1. **Clone the repository**
 
-    ```bash
-    git clone <repository-url>
-    cd todo-app
-    ```
+   ```bash
+   git clone <repository-url>
+   cd todo-app
+   ```
 
 2. **Install dependencies**
 
-    ```bash
-    npm install
-    ```
+   ```bash
+   npm install
+   ```
 
 3. **Environment Variables Setup**
-    Create a `.env` file in the root directory and add your PostgreSQL connection string:
+   Create a `.env` file in the root directory and add your PostgreSQL connection string:
 
-    ```env
-    DATABASE_URL="postgresql://user:password@localhost:5432/todo_app"
+   ```env
+   DATABASE_URL="postgresql://user:password@localhost:5432/todo_app"
 
-    # Better Auth Configuration
-    BETTER_AUTH_SECRET="your_better_auth_secret_here"
-    NEXT_PUBLIC_BETTER_AUTH_URL="http://localhost:3000"
+   # Better Auth Configuration
+   BETTER_AUTH_SECRET="your_better_auth_secret_here"
+   NEXT_PUBLIC_BETTER_AUTH_URL="http://localhost:3000"
 
-    # Google OAuth
-    GOOGLE_CLIENT_ID="your_google_client_id_here"
-    GOOGLE_CLIENT_SECRET="your_google_client_secret_here"
-    ```
+   # Google OAuth
+   GOOGLE_CLIENT_ID="your_google_client_id_here"
+   GOOGLE_CLIENT_SECRET="your_google_client_secret_here"
+   ```
 
 4. **Database Initialization**
-    Generate Prisma Client and push the models to your database:
+   Generate Prisma Client and apply versioned migrations:
 
-    ```bash
-    npx prisma generate
-    npx prisma db push
-    ```
+   ```bash
+   npx prisma generate
+   npx prisma migrate deploy
+   ```
+
+   For a database that was originally created with `prisma db push`, do not
+   run `migrate deploy` until you have verified that its schema matches the
+   baseline. Mark the baseline as applied first:
+
+   ```bash
+   npx prisma migrate resolve --applied 20260919000100_baseline
+   ```
+
+   New databases can use `npx prisma migrate deploy` directly.
 
 5. **Start the Development Server**
 
-    ```bash
-    npm run dev
-    ```
+   ```bash
+   npm run dev
+   ```
 
-    Open [http://localhost:3000](http://localhost:3000) in your browser to start using the app.
+   Open [http://localhost:3000](http://localhost:3000) in your browser to start using the app.
+
+### Quality Checks
+
+```bash
+npm run test
+npm run lint
+npx tsc --noEmit
+npm run build
+```
 
 ## 📂 Project Structure
 

@@ -5,10 +5,13 @@ import { Separator } from "@/components/ui/separator";
 import { signIn, useSession } from "@/lib/auth-client";
 import { Google } from "@deemlol/next-icons";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
 
 export default function LoginPage() {
   const router = useRouter();
   const { isPending } = useSession();
+  const [isSigningIn, setIsSigningIn] = useState(false);
 
   if (isPending) {
     return (
@@ -20,19 +23,27 @@ export default function LoginPage() {
 
   const handleSignIn = async (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
+    setIsSigningIn(true);
 
-    await signIn.social({
-      provider: "google",
-      fetchOptions: {
-        onSuccess: () => {
-          router.push("/");
+    try {
+      await signIn.social({
+        provider: "google",
+        fetchOptions: {
+          onSuccess: () => {
+            router.push("/");
+          },
+          onError: (ctx) => {
+            toast.error(
+              ctx.error.message || ctx.error.statusText || "Login failed",
+            );
+          },
         },
-        onError: (ctx) => {
-          // 這是關鍵：讓手機直接彈出錯誤訊息
-          alert(`登入錯誤: ${ctx.error.message || ctx.error.statusText}`);
-        },
-      },
-    });
+      });
+    } catch {
+      toast.error("Login failed. Please try again.");
+    } finally {
+      setIsSigningIn(false);
+    }
   };
 
   return (
@@ -50,6 +61,8 @@ export default function LoginPage() {
             className="w-full"
             onClick={handleSignIn}
             type="button"
+            disabled={isSigningIn}
+            aria-busy={isSigningIn}
           >
             <Google size={24} />
             Google Login
@@ -62,17 +75,9 @@ export default function LoginPage() {
             </span>
           </div>
 
-          <div className="grid gap-2">
-            <Button
-              variant="outline"
-              className="w-full overflow-hidden"
-              disabled
-            >
-              <p className="line-clamp-1">
-                Other login options (under construction)
-              </p>
-            </Button>
-          </div>
+          <p className="text-muted-foreground text-center text-xs">
+            More login options coming soon.
+          </p>
         </CardContent>
       </Card>
     </div>
