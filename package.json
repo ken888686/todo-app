@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "node --import tsx --test tests/*.test.ts",
+    "prisma:generate": "prisma generate",
     "typecheck": "tsc --noEmit",
     "prisma:validate": "prisma validate"
   },
