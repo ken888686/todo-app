@@ -52,19 +52,14 @@ This is a modern, responsive Todo application built with **Next.js 16 (App Route
    ```
 
 3. **Environment Variables Setup**
-   Create a `.env` file in the root directory and add your PostgreSQL connection string:
+   Copy the example file and replace each placeholder with your local values:
 
-   ```env
-   DATABASE_URL="postgresql://user:password@localhost:5432/todo_app"
-
-   # Better Auth Configuration
-   BETTER_AUTH_SECRET="your_better_auth_secret_here"
-   NEXT_PUBLIC_BETTER_AUTH_URL="http://localhost:3000"
-
-   # Google OAuth
-   GOOGLE_CLIENT_ID="your_google_client_id_here"
-   GOOGLE_CLIENT_SECRET="your_google_client_secret_here"
+   ```bash
+   cp .env.example .env
    ```
+
+   `BETTER_AUTH_SECRET` must be at least 32 characters. Production must use an
+   HTTPS `NEXT_PUBLIC_BETTER_AUTH_URL`.
 
 4. **Database Initialization**
    Generate Prisma Client and apply versioned migrations:
@@ -88,6 +83,13 @@ This is a modern, responsive Todo application built with **Next.js 16 (App Route
    existing database contains duplicate titles for the same user, resolve
    those duplicates before applying the latest migration.
 
+   Before applying migrations to an existing database, run the read-only
+   duplicate check:
+
+   ```bash
+   npm run prisma:check-item-duplicates
+   ```
+
 5. **Start the Development Server**
 
    ```bash
@@ -100,6 +102,7 @@ This is a modern, responsive Todo application built with **Next.js 16 (App Route
 
 ```bash
 npm run test
+npm run test:integration
 npm run lint
 npm run prisma:generate
 npm run typecheck

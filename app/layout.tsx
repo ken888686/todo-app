@@ -17,8 +17,11 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Todo App",
-  description: "My Todo List",
+  title: {
+    default: "Shopping List",
+    template: "%s | Shopping List",
+  },
+  description: "A private, fast shopping list for your everyday tasks.",
 };
 
 export const viewport: Viewport = {
@@ -32,7 +35,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="zh-Hant" suppressHydrationWarning>
       <body
         className={`${geist.variable} ${geistMono.variable} font-sans antialiased`}
       >

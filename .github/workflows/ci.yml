@@ -32,10 +32,11 @@ jobs:
           --health-retries 5
     env:
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/todo_app
-      BETTER_AUTH_SECRET: ci-only-secret-change-me
+      BETTER_AUTH_SECRET: ci-only-secret-change-me-1234567890
       NEXT_PUBLIC_BETTER_AUTH_URL: http://localhost:3000
       GOOGLE_CLIENT_ID: ci-placeholder
       GOOGLE_CLIENT_SECRET: ci-placeholder
+      TEST_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/todo_app
 
     steps:
       - name: Checkout
@@ -58,6 +59,9 @@ jobs:
 
       - name: Run unit tests
         run: npm run test
+
+      - name: Run database integration tests
+        run: npm run test:integration
 
       - name: Run lint
         run: npm run lint

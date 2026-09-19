@@ -28,11 +28,28 @@ export const TodoItem = memo(function TodoItem({
   const [tempTitle, setTempTitle] = useState(item.title);
   const inputRef = useRef<HTMLInputElement>(null);
   const [now, setNow] = useState<number | null>(null);
+  const [formattedDueAt, setFormattedDueAt] = useState("");
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setNow(Date.now()), 0);
-    return () => window.clearTimeout(timer);
+    const updateNow = () => setNow(Date.now());
+    updateNow();
+    const timer = window.setInterval(updateNow, 60_000);
+    return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => {
+    if (!item.dueAt) {
+      setFormattedDueAt("");
+      return;
+    }
+
+    setFormattedDueAt(
+      new Intl.DateTimeFormat(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(new Date(item.dueAt)),
+    );
+  }, [item.dueAt]);
 
   const handleSaveTitle = () => {
     if (tempTitle.trim() === "" || tempTitle === item.title) {
@@ -44,10 +61,12 @@ export const TodoItem = memo(function TodoItem({
     setIsEditing(false);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
-      handleSaveTitle();
+      e.preventDefault();
+      e.currentTarget.blur();
     } else if (e.key === "Escape") {
+      e.preventDefault();
       setTempTitle(item.title);
       setIsEditing(false);
     }
@@ -118,12 +137,7 @@ export const TodoItem = memo(function TodoItem({
           {item.dueAt && (
             <p className="text-muted-foreground text-xs">
               <time dateTime={new Date(item.dueAt).toISOString()}>
-                Due:{" "}
-                {new Date(item.dueAt)
-                  .toISOString()
-                  .slice(0, 16)
-                  .replace("T", " ")}{" "}
-                UTC
+                Due: {formattedDueAt || "date pending"}
               </time>
               {now !== null &&
                 item.status !== Status.DONE &&

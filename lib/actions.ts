@@ -11,6 +11,12 @@ import type {
   ItemUpdateInput,
 } from "./generated/prisma/models";
 import {
+  getItemPage,
+  normalizeItemPage,
+  normalizeItemSearch,
+  type ItemPage,
+} from "./item-query";
+import {
   isValidItemId,
   isValidItemStatus,
   normalizeItemTitle,
@@ -27,6 +33,41 @@ function isUniqueConstraintError(error: unknown) {
     error instanceof Prisma.PrismaClientKnownRequestError &&
     error.code === "P2002"
   );
+}
+
+function reportActionError(action: string, error: unknown) {
+  console.error(`[todo-action:${action}]`, error);
+}
+
+export async function loadMoreItems(
+  search: unknown,
+  page: unknown,
+): Promise<ActionResult<ItemPage>> {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    if (!session?.user.id) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    const normalizedPage = normalizeItemPage(page);
+    if (normalizedPage === null || normalizedPage === 0) {
+      return { success: false, error: "Invalid item page" };
+    }
+
+    return {
+      success: true,
+      data: await getItemPage(
+        session.user.id,
+        normalizeItemSearch(search),
+        normalizedPage,
+      ),
+    };
+  } catch (error) {
+    reportActionError("loadMoreItems", error);
+    return { success: false, error: "Failed to load more items" };
+  }
 }
 
 export async function addItem(
@@ -75,6 +116,7 @@ export async function addItem(
     if (isUniqueConstraintError(error)) {
       return { success: false, error: DUPLICATE_ITEM_ERROR };
     }
+    reportActionError("addItem", error);
     return { success: false, error: "Failed to create item" };
   }
 }
@@ -120,7 +162,8 @@ export async function updateItemStatus(
 
     revalidatePath("/");
     return { success: true, data: undefined };
-  } catch {
+  } catch (error) {
+    reportActionError("updateItemStatus", error);
     return { success: false, error: "Failed to update item status" };
   }
 }
@@ -148,7 +191,8 @@ export async function deleteItem(id: unknown): Promise<ActionResult<void>> {
 
     revalidatePath("/");
     return { success: true, data: undefined };
-  } catch {
+  } catch (error) {
+    reportActionError("deleteItem", error);
     return { success: false, error: "Failed to delete item" };
   }
 }
@@ -202,6 +246,7 @@ export async function updateItemTitle(
     if (isUniqueConstraintError(error)) {
       return { success: false, error: DUPLICATE_ITEM_ERROR };
     }
+    reportActionError("updateItemTitle", error);
     return { success: false, error: "Failed to update item title" };
   }
 }

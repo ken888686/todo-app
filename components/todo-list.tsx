@@ -3,6 +3,7 @@
 import {
   addItem,
   deleteItem,
+  loadMoreItems,
   updateItemStatus,
   updateItemTitle,
 } from "@/lib/actions";
@@ -15,7 +16,15 @@ import type { ItemModel } from "@/lib/generated/prisma/models";
 import { AnimatePresence, motion } from "framer-motion";
 import { CornerDownLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { use, useMemo, useOptimistic, useState, useTransition } from "react";
+import {
+  use,
+  useEffect,
+  useMemo,
+  useOptimistic,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { toast } from "sonner";
 import { TodoItem } from "./todo-item";
 import { Button } from "./ui/button";
@@ -27,21 +36,49 @@ type OptimisticAction =
   | { type: "ADD"; item: ItemModel }
   | { type: "DELETE"; id: number }
   | { type: "UPDATE_STATUS"; id: number; status: Status }
-  | { type: "UPDATE_TITLE"; id: number; title: string };
+  | {
+      type: "UPDATE_TITLE";
+      id: number;
+      title: string;
+      normalizedTitle: string;
+    };
 
 export function TodoList({
   initialItems,
+  initialHasMore,
+  initialQuery,
 }: {
   initialItems: Promise<ItemModel[]>;
+  initialHasMore: Promise<boolean>;
+  initialQuery: string;
 }) {
   const router = useRouter();
   const items = use(initialItems);
-  const [inputValue, setInputValue] = useState("");
+  const initialHasMoreValue = use(initialHasMore);
+  const [additionalItems, setAdditionalItems] = useState<ItemModel[]>([]);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [hasMore, setHasMore] = useState(initialHasMoreValue);
+  const [inputValue, setInputValue] = useState(initialQuery);
   const [isPending, startTransition] = useTransition();
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [pendingIds, setPendingIds] = useState<Set<number>>(new Set());
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const loadedItems = useMemo(
+    () => [...items, ...additionalItems],
+    [additionalItems, items],
+  );
 
   const [optimisticItems, setOptimisticItems] = useOptimistic(
-    items,
+    loadedItems,
     (state, action: OptimisticAction) => {
       switch (action.type) {
         case "ADD":
@@ -54,7 +91,13 @@ export function TodoList({
           );
         case "UPDATE_TITLE":
           return state.map((item) =>
-            item.id === action.id ? { ...item, title: action.title } : item,
+            item.id === action.id
+              ? {
+                  ...item,
+                  title: action.title,
+                  normalizedTitle: action.normalizedTitle,
+                }
+              : item,
           );
         default:
           return state;
@@ -82,6 +125,23 @@ export function TodoList({
       }
       return next;
     });
+  }
+
+  function handleSearchChange(value: string) {
+    setInputValue(value);
+
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current);
+    }
+
+    searchTimeoutRef.current = setTimeout(() => {
+      const query = value.trim().slice(0, 200);
+      const nextUrl = query ? `/?q=${encodeURIComponent(query)}` : "/";
+      const currentUrl = `${window.location.pathname}${window.location.search}`;
+      if (nextUrl !== currentUrl) {
+        router.replace(nextUrl, { scroll: false });
+      }
+    }, 250);
   }
 
   async function handleAdd(formData: FormData) {
@@ -116,7 +176,7 @@ export function TodoList({
       };
 
       setOptimisticItems({ type: "ADD", item: newItem });
-      setInputValue("");
+      handleSearchChange("");
 
       const result = await addItem(titleResult.value);
 
@@ -174,6 +234,7 @@ export function TodoList({
           type: "UPDATE_TITLE",
           id,
           title: titleResult.value,
+          normalizedTitle,
         });
         const result = await updateItemTitle(id, titleResult.value);
 
@@ -185,6 +246,30 @@ export function TodoList({
         }
       } finally {
         setItemPending(id, false);
+      }
+    });
+  }
+
+  function handleLoadMore() {
+    if (isLoadingMore || !hasMore) {
+      return;
+    }
+
+    const nextPage = currentPage + 1;
+    setIsLoadingMore(true);
+    startTransition(async () => {
+      try {
+        const result = await loadMoreItems(inputValue, nextPage);
+        if (!result.success) {
+          toast.error(result.error);
+          return;
+        }
+
+        setAdditionalItems((current) => [...current, ...result.data.items]);
+        setCurrentPage(nextPage);
+        setHasMore(result.data.hasMore);
+      } finally {
+        setIsLoadingMore(false);
       }
     });
   }
@@ -226,7 +311,7 @@ export function TodoList({
           placeholder="Search or add a todo"
           className="h-11"
           value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
+          onChange={(e) => handleSearchChange(e.target.value)}
           autoComplete="off"
         />
         <Button
@@ -237,7 +322,7 @@ export function TodoList({
             inputValue.trim() === "" ||
             optimisticItems.some(
               (item) =>
-                normalizeItemTitleForComparison(item.title) ===
+                item.normalizedTitle ===
                 normalizeItemTitleForComparison(inputValue),
             )
           }
@@ -282,6 +367,16 @@ export function TodoList({
           </AnimatePresence>
         </div>
       </ScrollArea>
+      {hasMore && (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handleLoadMore}
+          disabled={isPending || isLoadingMore}
+        >
+          {isLoadingMore ? "Loading..." : "Load more"}
+        </Button>
+      )}
     </div>
   );
 }
