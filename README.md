@@ -1,6 +1,6 @@
 # Todo App 📝
 
-[![Next.js](https://img.shields.io/badge/Next.js-16.1-black.svg?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/) [![React](https://img.shields.io/badge/React-19.2-blue.svg?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev/) [![Prisma](https://img.shields.io/badge/Prisma-7.2-dark-green.svg?style=for-the-badge&logo=prisma&logoColor=white)](https://www.prisma.io/) [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/) [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue.svg?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/) [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-blue.svg?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
+[![Next.js](https://img.shields.io/badge/Next.js-16.3-black.svg?style=for-the-badge&logo=next.js&logoColor=white)](https://nextjs.org/) [![React](https://img.shields.io/badge/React-19.3-blue.svg?style=for-the-badge&logo=react&logoColor=61DAFB)](https://react.dev/) [![Prisma](https://img.shields.io/badge/Prisma-7.10-dark-green.svg?style=for-the-badge&logo=prisma&logoColor=white)](https://www.prisma.io/) [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-4-38B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/) [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue.svg?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/) [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-blue.svg?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
 
 This is a modern, responsive Todo application built with **Next.js 16 (App Router)**, **Prisma 7**, and **PostgreSQL**.
 
@@ -20,12 +20,12 @@ This is a modern, responsive Todo application built with **Next.js 16 (App Route
 
 ## 🛠️ Tech Stack
 
-- **Framework**: [Next.js 16.1](https://nextjs.org/) (App Router)
-- **Authentication**: [Better Auth 1.4](https://www.better-auth.com/)
-- **Frontend Library**: [React 19.2](https://react.dev/)
+- **Framework**: [Next.js 16.3](https://nextjs.org/) (App Router)
+- **Authentication**: [Better Auth 1.7](https://www.better-auth.com/)
+- **Frontend Library**: [React 19.3](https://react.dev/)
 - **Styling**: [Tailwind CSS v4](https://tailwindcss.com/), [Radix UI](https://www.radix-ui.com/), [shadcn/ui](https://ui.shadcn.com/)
 - **Database**: [PostgreSQL](https://www.postgresql.org/)
-- **ORM**: [Prisma 7.2](https://www.prisma.io/) (with `@prisma/adapter-pg`)
+- **ORM**: [Prisma 7.10](https://www.prisma.io/) (with `@prisma/adapter-pg`)
 - **Icons**: [@deemlol/next-icons](https://www.npmjs.com/package/@deemlol/next-icons)
 - **Linting/Formatting**: [ESLint](https://eslint.org/), [Prettier](https://prettier.io/)
 
