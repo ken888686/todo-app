@@ -10,6 +10,7 @@
     "lint": "eslint",
     "test": "node --import tsx --test tests/*.test.ts",
     "prisma:generate": "prisma generate",
+    "prisma:migrate:deploy": "prisma migrate deploy",
     "typecheck": "tsc --noEmit",
     "prisma:validate": "prisma validate"
   },
