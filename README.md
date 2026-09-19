@@ -97,7 +97,8 @@ This is a modern, responsive Todo application built with **Next.js 16 (App Route
 ```bash
 npm run test
 npm run lint
-npx tsc --noEmit
+npm run typecheck
+npm run prisma:validate
 npm run build
 ```
 
